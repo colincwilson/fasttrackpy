@@ -5,21 +5,39 @@ import polars as pl
 from aligned_textgrid import SequenceInterval
 from pathlib import Path
 import matplotlib.pyplot as mp
+import matplotlib
 import copy
 import logging
 import sys
 
-ptolmap = {
-    "F1": "#4477AA",
-    "F1_s": "#4477AA",
-    "F2": "#EE6677",
-    "F2_s": "#EE6677",
-    "F3": "#228833",
-    "F3_s": "#228833",
-    "F4": "#CCBB44",
-    "F4_s": "#CCBB44"
-}
+## tk fix
+from os import environ
+from sys import base_prefix
+import platform
 
+if platform.system() == "Windows":
+    import tkinter
+    def __set_tk_environ():
+        if not ("TCL_LIBRARY" in environ and "TK_LIBRARY" in environ):
+            try:
+                tkinter.Tk()
+            except tkinter.TclError:
+                tk_dir = "tcl" if platform.system() == "Windows" else "lib"
+                tk_path = Path(base_prefix) / tk_dir
+                environ["TCL_LIBRARY"] = str(next(tk_path.glob("tcl8.*")))
+                environ["TK_LIBRARY"] = str(next(tk_path.glob("tk8.*")))
+    __set_tk_environ()
+
+
+
+ptolmap = {"F1" :"#4477AA",
+           "F1_s": "#4477AA",
+           "F2": "#EE6677",
+           "F2_s": "#EE6677",
+           "F3": "#228833",
+           "F3_s": "#228833",
+           "F4": "#CCBB44",
+           "F4_s": "#CCBB44"}
 
 def add_metadata(self, out_df):
     if self.file_name:
@@ -36,8 +54,7 @@ def add_metadata(self, out_df):
 
     return out_df
 
-
-def formant_to_dataframe(self):
+def formant_to_dataframe(self)->pl.DataFrame:
     """Return data as a data frame
 
     Returns:
@@ -108,23 +125,26 @@ def log_param_to_dataframe(self):
 
     return param_df
 
-
-def get_big_df(self, output):
-    all_df = [x.to_df(output=output) for x in self.candidates]
-    all_df = [
-        x.with_columns(candidate=idx + 1) for idx, x in enumerate(all_df)
-    ]
+def get_big_df(self, output) -> pl.DataFrame:
+        all_df = [x.to_df(output = output) for x in self.candidates]
+        all_df = [
+            x.with_columns(
+                candidate = idx+1
+            )
+            for idx, x in enumerate(all_df)
+        ]
 
     big_df = pl.concat(all_df, how="diagonal")
     return big_df
 
-
-def write_data(candidates,
-               file: Path = None,
-               destination: Path = None,
-               which: str = "winner",
-               output: str = "formants",
-               separate: bool = False):
+def write_data(
+        candidates,
+        file: str|Path|None = None,
+        destination: str|Path|None = None,
+        which: str = "winner",
+        output: str = "formants",
+        separate: bool = False
+):
     if destination and not isinstance(destination, Path):
         destination = Path(destination)
 
@@ -241,7 +261,7 @@ def spectrogram(self,
 
     data = data\
         .select(["time"]+all_cols)\
-        .melt(id_vars = "time")\
+        .unpivot(index = "time")\
         .with_columns(
             pl.col("variable")\
             .replace(ptolmap)\
@@ -340,7 +360,7 @@ def candidate_spectrograms(self,
 
             data = data\
                 .select(["time"]+all_cols)\
-                .melt(id_vars = "time")\
+                .unpivot(index = "time")\
                 .with_columns(
                     pl.col("variable")\
                     .replace(ptolmap)\
@@ -388,12 +408,10 @@ def pickle_candidates(candidates, file: Path | str):
             The file location to save the pickle file
             to.
     """
-    if type(file) is str:
-        file = Path(file)
     sys.setrecursionlimit(3000)
     #tmp_candidates = copy.deepcopy (candidates)
 
-    with file.open('wb') as f:
+    with Path(file).open('wb') as f:
         cloudpickle.dump(candidates, f)
 
 
@@ -411,10 +429,8 @@ def unpickle_candidates(file: Path | str):
         (CandidateTracks):
             A CandidateTracks object.
     """
-    if type(file) is str:
-        file = Path(file)
     sys.setrecursionlimit(3000)
-    with file.open('rb') as f:
+    with Path(file).open('rb') as f:
         candidates = cloudpickle.load(f)
 
     return candidates

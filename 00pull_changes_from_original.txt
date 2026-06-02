@@ -1,0 +1,23 @@
+# Add original repo URL
+
+git remote add upstream git@github.com:FastTrackiverse/fasttrackpy.git
+
+# Verify
+
+git remote -v
+
+# Fetch upstream branches
+
+git fetch upstream
+
+# Switch to default branch
+
+git checkout main
+
+# Merge upstream changes into local branch
+
+git merge upstream/main
+
+# Update fork repo
+
+git push origin main
