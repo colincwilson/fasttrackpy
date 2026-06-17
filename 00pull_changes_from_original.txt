@@ -12,11 +12,11 @@ git fetch upstream
 
 # Switch to default branch
 
-git checkout main
+git checkout dev
 
 # Merge upstream changes into local branch
 
-git merge upstream/main
+git merge upstream/dev
 
 # Update fork repo
 

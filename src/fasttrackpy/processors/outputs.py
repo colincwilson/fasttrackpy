@@ -17,6 +17,7 @@ import platform
 
 if platform.system() == "Windows":
     import tkinter
+
     def __set_tk_environ():
         if not ("TCL_LIBRARY" in environ and "TK_LIBRARY" in environ):
             try:
@@ -26,18 +27,20 @@ if platform.system() == "Windows":
                 tk_path = Path(base_prefix) / tk_dir
                 environ["TCL_LIBRARY"] = str(next(tk_path.glob("tcl8.*")))
                 environ["TK_LIBRARY"] = str(next(tk_path.glob("tk8.*")))
+
     __set_tk_environ()
 
+ptolmap = {
+    "F1": "#4477AA",
+    "F1_s": "#4477AA",
+    "F2": "#EE6677",
+    "F2_s": "#EE6677",
+    "F3": "#228833",
+    "F3_s": "#228833",
+    "F4": "#CCBB44",
+    "F4_s": "#CCBB44"
+}
 
-
-ptolmap = {"F1" :"#4477AA",
-           "F1_s": "#4477AA",
-           "F2": "#EE6677",
-           "F2_s": "#EE6677",
-           "F3": "#228833",
-           "F3_s": "#228833",
-           "F4": "#CCBB44",
-           "F4_s": "#CCBB44"}
 
 def add_metadata(self, out_df):
     if self.file_name:
@@ -54,7 +57,8 @@ def add_metadata(self, out_df):
 
     return out_df
 
-def formant_to_dataframe(self)->pl.DataFrame:
+
+def formant_to_dataframe(self) -> pl.DataFrame:
     """Return data as a data frame
 
     Returns:
@@ -125,26 +129,24 @@ def log_param_to_dataframe(self):
 
     return param_df
 
+
 def get_big_df(self, output) -> pl.DataFrame:
-        all_df = [x.to_df(output = output) for x in self.candidates]
-        all_df = [
-            x.with_columns(
-                candidate = idx+1
-            )
-            for idx, x in enumerate(all_df)
-        ]
+    all_df = [x.to_df(output=output) for x in self.candidates]
+    all_df = [
+        x.with_columns(candidate=idx + 1) for idx, x in enumerate(all_df)
+    ]
 
     big_df = pl.concat(all_df, how="diagonal")
+
     return big_df
 
-def write_data(
-        candidates,
-        file: str|Path|None = None,
-        destination: str|Path|None = None,
-        which: str = "winner",
-        output: str = "formants",
-        separate: bool = False
-):
+
+def write_data(candidates,
+               file: str | Path | None = None,
+               destination: str | Path | None = None,
+               which: str = "winner",
+               output: str = "formants",
+               separate: bool = False):
     if destination and not isinstance(destination, Path):
         destination = Path(destination)
 
