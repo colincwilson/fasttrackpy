@@ -10,10 +10,8 @@ from fasttrackpy.processors.outputs import formant_to_dataframe,\
                                            get_big_df,\
                                            spectrogram,\
                                            candidate_spectrograms
-from fasttrackpy.processors.heuristic import (
-    MinMaxHeuristic,
-    SpacingHeuristic
-)
+from fasttrackpy.processors.heuristic import (MinMaxHeuristic,
+                                              SpacingHeuristic)
 
 import matplotlib.pyplot as mp
 from aligned_textgrid import SequenceInterval
@@ -31,25 +29,24 @@ def _make_candidate(args_dict):
     track = OneTrack(**args_dict)
     return track
 
+
 class Track:
     """
     A generic track class to set up attribute values
     """
 
-    def __init__(
-            self,
-            sound: pm.Sound|None = None,
-            samples: npt.NDArray|None = None,
-            sampling_frequency: float|None = None,
-            xmin: float = 0.0,            
-            n_formants: int = 4,
-            window_length: float = 0.05,
-            time_step: float = 0.002,
-            pre_emphasis_from: float = 50,
-            smoother: Smoother = Smoother(),
-            loss_fun: Loss = Loss(),
-            agg_fun: Agg = Agg()
-    ):
+    def __init__(self,
+                 sound: pm.Sound | None = None,
+                 samples: npt.NDArray | None = None,
+                 sampling_frequency: float | None = None,
+                 xmin: float = 0.0,
+                 n_formants: int = 4,
+                 window_length: float = 0.05,
+                 time_step: float = 0.002,
+                 pre_emphasis_from: float = 50,
+                 smoother: Smoother = Smoother(),
+                 loss_fun: Loss = Loss(),
+                 agg_fun: Agg = Agg()):
         #self.sound = sound
         if sound:
             self.samples = sound.values
@@ -58,7 +55,7 @@ class Track:
         else:
             self.samples = samples
             self.sampling_frequency = sampling_frequency
-            self.xmin = xmin           
+            self.xmin = xmin
         self.n_formants = n_formants
         self.window_length = window_length
         self.time_step = time_step
@@ -66,15 +63,13 @@ class Track:
         self.smoother = smoother
         self.loss_fun = loss_fun
         self.agg_fun = agg_fun
-        
+
     @property
     def sound(self):
-        sound_obj = pm.Sound(
-            self.samples, 
-            sampling_frequency = self.sampling_frequency,
-            start_time = self.xmin
-        )
-        return sound_obj        
+        sound_obj = pm.Sound(self.samples,
+                             sampling_frequency=self.sampling_frequency,
+                             start_time=self.xmin)
+        return sound_obj
 
 
 class OneTrack(Track):
@@ -132,37 +127,36 @@ class OneTrack(Track):
     """
 
     def __init__(
-            self,
-            maximum_formant: float,
-            sound: pm.Sound|None = None,
-            samples: npt.NDArray|None = None,
-            sampling_frequency: float|None = None,
-            xmin: float = 0.0,
-            n_formants: int = 4,
-            window_length: float = 0.025,
-            time_step: float = 0.002,
-            pre_emphasis_from: float = 50,
-            smoother: Smoother = Smoother(method="dct_smooth_regression"),
-            loss_fun: Loss = Loss(method = "lmse"),
-            agg_fun: Agg = Agg(method = "agg_sum"),
-            heuristics: list[MinMaxHeuristic|SpacingHeuristic] = [],
-        ):
-        super().__init__(
-            sound=sound,
-            samples = samples,
-            sampling_frequency=sampling_frequency,
-            xmin = xmin,
-            n_formants=n_formants,
-            window_length=window_length,
-            time_step=time_step,
-            pre_emphasis_from=pre_emphasis_from,
-            smoother=smoother,
-            loss_fun=loss_fun,
-            agg_fun=agg_fun
-        )
+        self,
+        maximum_formant: float,
+        sound: pm.Sound | None = None,
+        samples: npt.NDArray | None = None,
+        sampling_frequency: float | None = None,
+        xmin: float = 0.0,
+        n_formants: int = 4,
+        window_length: float = 0.025,
+        time_step: float = 0.002,
+        pre_emphasis_from: float = 50,
+        smoother: Smoother = Smoother(method="dct_smooth_regression"),
+        loss_fun: Loss = Loss(method="lmse"),
+        agg_fun: Agg = Agg(method="agg_sum"),
+        heuristics: list[MinMaxHeuristic | SpacingHeuristic] = [],
+    ):
+        super().__init__(sound=sound,
+                         samples=samples,
+                         sampling_frequency=sampling_frequency,
+                         xmin=xmin,
+                         n_formants=n_formants,
+                         window_length=window_length,
+                         time_step=time_step,
+                         pre_emphasis_from=pre_emphasis_from,
+                         smoother=smoother,
+                         loss_fun=loss_fun,
+                         agg_fun=agg_fun)
         self.maximum_formant = maximum_formant
 
-        self.formants, self.bandwidths, self._time_domain = self._track_formants()
+        self.formants, self.bandwidths, self._time_domain = self._track_formants(
+        )
         self.smoothed_list = self._smooth_formants()
         self.smoothed_b_list = self._smooth_bandwidths()
         self.smoothed_b_log_list = self._smooth_log_bandwidths()
@@ -181,62 +175,41 @@ class OneTrack(Track):
 
     def _track_formants(self) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
         formant_obj = self.sound.to_formant_burg(
-            time_step = self.time_step,
-            max_number_of_formants = 5.5,
-            maximum_formant = self.maximum_formant,
-            window_length = self.window_length,
-            pre_emphasis_from = self.pre_emphasis_from
-        )
+            time_step=self.time_step,
+            max_number_of_formants=5.5,
+            maximum_formant=self.maximum_formant,
+            window_length=self.window_length,
+            pre_emphasis_from=self.pre_emphasis_from)
 
         time_domain = formant_obj.xs()
         tracks = np.array(
-            [
-                [
-                    formant_obj.get_value_at_time(i+1, x)
-                    for x in time_domain
-                ]
-                for i in range(int(np.floor(self.n_formants)))
-            ]
-        )
+            [[formant_obj.get_value_at_time(i + 1, x) for x in time_domain]
+             for i in range(int(np.floor(self.n_formants)))])
 
-        bandwidths = np.array(
-            [
-                [
-                    formant_obj.get_bandwidth_at_time(i+1, x)
-                    for x in time_domain
-                ]
-                for i in range(int(np.floor(self.n_formants)))
-            ]
-        )
+        bandwidths = np.array([[
+            formant_obj.get_bandwidth_at_time(i + 1, x) for x in time_domain
+        ] for i in range(int(np.floor(self.n_formants)))])
 
         return tracks, bandwidths, time_domain
 
     def _smooth_formants(self):
-        smoothed_list = [
-          self.smoother.smooth(x)
-            for x in self.formants
-        ]
+        smoothed_list = [self.smoother.smooth(x) for x in self.formants]
         return smoothed_list
-    
+
     def _smooth_log_formants(self):
         smoothed_list = [
-            self.smoother.smooth(x)
-            for x in np.log(self.formants)
+            self.smoother.smooth(x) for x in np.log(self.formants)
         ]
 
         return smoothed_list
 
     def _smooth_bandwidths(self):
-        smoothed_b_list = [
-          self.smoother.smooth(x)
-            for x in self.bandwidths
-        ]
+        smoothed_b_list = [self.smoother.smooth(x) for x in self.bandwidths]
         return smoothed_b_list
-    
+
     def _smooth_log_bandwidths(self):
         smoothed_b_list = [
-            self.smoother.smooth(x)
-            for x in np.log(self.bandwidths)
+            self.smoother.smooth(x) for x in np.log(self.bandwidths)
         ]
         return smoothed_b_list
 
@@ -244,46 +217,34 @@ class OneTrack(Track):
     def time_domain(self):
         return self._time_domain
 
-
     @property
     def smoothed_formants(self):
-        return np.array(
-            [x.smoothed for x in self.smoothed_list]
-        )
+        return np.array([x.smoothed for x in self.smoothed_list])
 
     @property
     def smoothed_bandwidths(self):
-        return np.array(
-            [x.smoothed for x in self.smoothed_b_log_list]
-        )
+        return np.array([x.smoothed for x in self.smoothed_b_log_list])
 
     @property
     def parameters(self):
-        return np.array(
-            [x.params for x in self.smoothed_list]
-        )
-    
+        return np.array([x.params for x in self.smoothed_list])
+
     @property
     def log_parameters(self):
-        return np.array([
-            x.params for x in self.smoothed_log_list
-        ])
-    
+        return np.array([x.params for x in self.smoothed_log_list])
+
     @property
     def bandwidth_parameters(self):
-        return np.array(
-            [x.params for x in self.smoothed_b_log_list]
-        )
+        return np.array([x.params for x in self.smoothed_b_log_list])
 
     @property
     def smooth_error(self):
-        msqe =  self.loss_fun.calculate_loss(
+        msqe = self.loss_fun.calculate_loss(
             self.formants[0:self.n_formants],
-            self.smoothed_formants[0:self.n_formants]
-        )
+            self.smoothed_formants[0:self.n_formants])
         error = self.agg_fun.aggregate(msqe)
         return error
-    
+
     @property
     def heuristic_error(self):
         error = 0
@@ -292,9 +253,9 @@ class OneTrack(Track):
 
         for heuristic in self.heuristics:
             error += heuristic.eval(self)
-        
+
         return error
-    
+
     @property
     def total_error(self):
         return self.smooth_error + self.heuristic_error
@@ -341,9 +302,9 @@ class OneTrack(Track):
         return self.__get_group(interval.within)
 
     def to_df(
-            self,
-            output:Literal["formants", "param", "log_param"] = "formants"
-            ) -> pl.DataFrame:
+        self,
+        output: Literal["formants", "param", "log_param"] = "formants"
+    ) -> pl.DataFrame:
         """Output either the formant values or the formant smoothing parameters \
         as a polars dataframe
 
@@ -357,7 +318,7 @@ class OneTrack(Track):
         """
         if output == "formants"\
               and self._formant_df.shape == (0, 0):
-            df =  formant_to_dataframe(self)
+            df = formant_to_dataframe(self)
             self._formant_df = df
             return df
         if output == "formants":
@@ -365,18 +326,18 @@ class OneTrack(Track):
 
         if output == "param"\
             and self._param_df.shape == (0, 0):
-            df =  param_to_dataframe(self)
+            df = param_to_dataframe(self)
             self._param_df = df
             return df
         if output == "param":
             return self._param_df
-        
+
         if output == "log_param"\
             and self._log_param_df.shape == (0, 0):
             df = log_param_to_dataframe(self)
             self._log_param_df = df
             return df
-        
+
         if output == "log_param":
             return self._log_param_df
 
@@ -418,7 +379,6 @@ class OneTrack(Track):
                 dots per inch. Defaults to 100.
         """
         spectrogram(self, **kwargs)
-
 
 
 class CandidateTracks(Track, Sequence):
@@ -478,48 +438,42 @@ class CandidateTracks(Track, Sequence):
         group (str): The tier group name of the sound, if set.
     """
 
-    def __init__(
-        self,
-        sound: pm.Sound = None,
-        samples: npt.NDArray|None = None,
-        sampling_frequency: float|None = None,
-        xmin: float = 0.0,
-        min_max_formant: float = 4000,
-        max_max_formant: float = 7000,
-        nstep = 20,
-        n_formants: int = 4,
-        window_length: float = 0.025,
-        time_step: float = 0.002,
-        pre_emphasis_from: float = 50,
-        pitch_floor: float = 75,
-        smoother: Smoother = Smoother(),
-        loss_fun: Loss = Loss(),
-        agg_fun: Agg = Agg(),
-        heuristics: list[MinMaxHeuristic|SpacingHeuristic] = []
-    ):
-        super().__init__(
-            sound=sound,
-            samples = samples,
-            sampling_frequency = sampling_frequency,
-            xmin = xmin,
-            n_formants=n_formants,
-            window_length=window_length,
-            time_step=time_step,
-            pre_emphasis_from=pre_emphasis_from,
-            smoother=smoother,
-            loss_fun=loss_fun,
-            agg_fun=agg_fun
-        )
+    def __init__(self,
+                 sound: pm.Sound = None,
+                 samples: npt.NDArray | None = None,
+                 sampling_frequency: float | None = None,
+                 xmin: float = 0.0,
+                 min_max_formant: float = 4000,
+                 max_max_formant: float = 7000,
+                 nstep=20,
+                 n_formants: int = 4,
+                 window_length: float = 0.025,
+                 time_step: float = 0.002,
+                 pre_emphasis_from: float = 50,
+                 pitch_floor: float = 75,
+                 smoother: Smoother = Smoother(),
+                 loss_fun: Loss = Loss(),
+                 agg_fun: Agg = Agg(),
+                 heuristics: list[MinMaxHeuristic | SpacingHeuristic] = []):
+        super().__init__(sound=sound,
+                         samples=samples,
+                         sampling_frequency=sampling_frequency,
+                         xmin=xmin,
+                         n_formants=n_formants,
+                         window_length=window_length,
+                         time_step=time_step,
+                         pre_emphasis_from=pre_emphasis_from,
+                         smoother=smoother,
+                         loss_fun=loss_fun,
+                         agg_fun=agg_fun)
 
         self.min_max_formant = min_max_formant
         self.max_max_formant = max_max_formant
         self.pitch_floor = pitch_floor
         self.nstep = nstep
-        self.max_formants = np.linspace(
-            start = self.min_max_formant,
-            stop = self.max_max_formant,
-            num = self.nstep
-        )
+        self.max_formants = np.linspace(start=self.min_max_formant,
+                                        stop=self.max_max_formant,
+                                        num=self.nstep)
         self.heuristics = heuristics
         self._file_name = None
         self._id = None
@@ -530,74 +484,75 @@ class CandidateTracks(Track, Sequence):
         self._log_param_df = pl.DataFrame()
         self._interval = None
 
-        to_process = [
-            {
-                "samples": self.samples,
-                "sampling_frequency": self.sampling_frequency,
-                "xmin": self.xmin,
-                "maximum_formant": max_formant,
-                "n_formants": self.n_formants,
-                "window_length": self.window_length,
-                "time_step": self.time_step,
-                "pre_emphasis_from": self.pre_emphasis_from,
-                "smoother": self.smoother,
-                "loss_fun": self.loss_fun,
-                "agg_fun": self.agg_fun,
-                "heuristics": self.heuristics
-            }
-            for max_formant in self.max_formants
-        ]
+        to_process = [{
+            "samples": self.samples,
+            "sampling_frequency": self.sampling_frequency,
+            "xmin": self.xmin,
+            "maximum_formant": max_formant,
+            "n_formants": self.n_formants,
+            "window_length": self.window_length,
+            "time_step": self.time_step,
+            "pre_emphasis_from": self.pre_emphasis_from,
+            "smoother": self.smoother,
+            "loss_fun": self.loss_fun,
+            "agg_fun": self.agg_fun,
+            "heuristics": self.heuristics
+        } for max_formant in self.max_formants]
 
-        self.candidates = [
-            _make_candidate(x) for x in to_process
-        ]
+        self.candidates = [_make_candidate(x) for x in to_process]
 
         self.smooth_errors = np.array(
-            [x.smooth_error for x in self.candidates]
-        )
+            [x.smooth_error for x in self.candidates])
         self.heuristic_errors = np.array(
-            [x.heuristic_error for x in self.candidates]
-        )
+            [x.heuristic_error for x in self.candidates])
 
         self.total_errors = np.copy(self.smooth_errors)
 
         if np.any(np.isfinite(self.heuristic_errors)):
-            self.total_errors += self.heuristic_errors        
+            self.total_errors += self.heuristic_errors
 
         self.winner_idx = np.argmin(self.total_errors)
         self.winner = self.candidates[self.winner_idx]
         self.f0 = self.__get_pitch()
         self.f0_smooth = self.smoother.smooth(self.f0)
         self.f0_log_smooth = self.smoother.smooth(np.log(self.f0))
-        self.intensity = self.__get_intensty()        
+        self.intensity = self.__get_intensty()
         self.intensity_smooth = self.smoother.smooth(self.intensity)
-        self.intensity_log_smooth = self.smoother.smooth(np.log(self.intensity))        
+        self.intensity_log_smooth = self.smoother.smooth(np.log(
+            self.intensity))
 
-    def __getitem__(self, idx:slice|int) -> OneTrack|Sequence[OneTrack]:
+    def __getitem__(self, idx: slice | int) -> OneTrack | Sequence[OneTrack]:
         return self.candidates[idx]
-    
+
     def __len__(self) -> int:
         return len(self.candidates)
-    
+
     def __get_pitch(self) -> npt.NDArray:
-        pitch_obj = self.sound.to_pitch(
-            time_step = self.time_step, 
-            pitch_floor = self.pitch_floor
-        )
-        pitch_array = np.array([
-            pitch_obj.get_value_at_time(t)
-            for t in self.winner.time_domain
-        ])
+        pitch_obj = self.sound.to_pitch(time_step=self.time_step,
+                                        pitch_floor=self.pitch_floor)
+        pitch_array = np.array(
+            [pitch_obj.get_value_at_time(t) for t in self.winner.time_domain])
         return pitch_array
-    
+
     def __get_intensty(self) -> npt.NDArray:
-        intensity_obj = self.sound.to_intensity(time_step = self.time_step)
-        intensity = np.array([
-            intensity_obj.get_value(time = t)
-            for t in self.winner.time_domain
-        ])
+        intensity_obj = self.sound.to_intensity(time_step=self.time_step)
+        intensity = np.array(
+            [intensity_obj.get_value(time=t) for t in self.winner.time_domain])
         return intensity
 
+    def _repeat_vector_for_candidates(self, values: npt.NDArray,
+                                      row_count: int) -> npt.NDArray:
+        """Repeat a per-time vector to match concatenated candidate row count."""
+        if values.size == 0 or row_count == 0:
+            return np.array([])
+
+        repeated = np.tile(values, len(self.candidates))
+        if repeated.shape[0] >= row_count:
+            return repeated[:row_count]
+
+        # Keep output length-safe even if a candidate has an unexpected row count.
+        pad = np.full(row_count - repeated.shape[0], np.nan)
+        return np.concatenate([repeated, pad])
 
     @property
     def file_name(self):
@@ -633,7 +588,6 @@ class CandidateTracks(Track, Sequence):
 
         return self.__get_group(interval.within)
 
-
     @property
     def interval(self):
         return self._interval
@@ -648,10 +602,10 @@ class CandidateTracks(Track, Sequence):
             c.interval = interval
 
     def to_df(
-            self,
-            which: Literal["winner", "all"] = "winner",
-            output: Literal["formants", "param", "log_param"] = "formants"
-            ) -> pl.DataFrame:
+        self,
+        which: Literal["winner", "all"] = "winner",
+        output: Literal["formants", "param", "log_param"] = "formants"
+    ) -> pl.DataFrame:
         """Return a polars dataframe of the candidate tracks
 
         Args:
@@ -669,30 +623,40 @@ class CandidateTracks(Track, Sequence):
             out_df = self.winner.to_df(output=output)
             if output == "formants":
                 out_df = out_df.with_columns(
-                    f0 = pl.Series(self.f0),
-                    f0_s = pl.Series(self.f0_smooth.smoothed),
-                    intensity = pl.Series(self.intensity),
-                    intensity_s = pl.Series(self.intensity_smooth.smoothed)
-                )
+                    f0=pl.Series(self.f0),
+                    f0_s=pl.Series(self.f0_smooth.smoothed),
+                    intensity=pl.Series(self.intensity),
+                    intensity_s=pl.Series(self.intensity_smooth.smoothed))
                 return out_df
-            
+
             if output == "param":
                 out_df = out_df.with_columns(
-                    f0 = pl.Series(self.f0_smooth.params),
-                    intensity = pl.Series(self.intensity_smooth.params)
-                )
+                    f0=pl.Series(self.f0_smooth.params),
+                    intensity=pl.Series(self.intensity_smooth.params))
                 return out_df
-            
+
             if output == "log_param":
                 out_df = out_df.with_columns(
-                    f0 = pl.Series(self.f0_log_smooth.params),
-                    intensith = pl.Series(self.intensity_log_smooth.params)
-                )
+                    f0=pl.Series(self.f0_log_smooth.params),
+                    intensity=pl.Series(self.intensity_log_smooth.params))
                 return out_df
 
         if output == "formants"\
             and self._formant_df.shape == (0, 0):
             big_df = get_big_df(self, output=output)
+            big_df = big_df.with_columns(
+                f0=pl.Series(
+                    self._repeat_vector_for_candidates(self.f0,
+                                                       big_df.height)),
+                f0_s=pl.Series(
+                    self._repeat_vector_for_candidates(self.f0_smooth.smoothed,
+                                                       big_df.height)),
+                intensity=pl.Series(
+                    self._repeat_vector_for_candidates(self.intensity,
+                                                       big_df.height)),
+                intensity_s=pl.Series(
+                    self._repeat_vector_for_candidates(
+                        self.intensity_smooth.smoothed, big_df.height)))
             self._formant_df = big_df
             return big_df
 
@@ -702,20 +666,34 @@ class CandidateTracks(Track, Sequence):
         if output == "param"\
             and self._param_df.shape == (0, 0):
             big_df = get_big_df(self, output=output)
+            big_df = big_df.with_columns(
+                f0=pl.Series(
+                    self._repeat_vector_for_candidates(self.f0_smooth.params,
+                                                       big_df.height)),
+                intensity=pl.Series(
+                    self._repeat_vector_for_candidates(
+                        self.intensity_smooth.params, big_df.height)))
             self._param_df = big_df
             return big_df
 
         if output == "param":
             return self._param_df
-        
+
         if output == "log_param"\
             and self._log_param_df.shape == (0, 0):
             big_df = get_big_df(self, output=output)
+            big_df = big_df.with_columns(
+                f0=pl.Series(
+                    self._repeat_vector_for_candidates(
+                        self.f0_log_smooth.params, big_df.height)),
+                intensity=pl.Series(
+                    self._repeat_vector_for_candidates(
+                        self.intensity_log_smooth.params, big_df.height)))
             self._log_param_df = big_df
             return big_df
 
         if output == "log_param":
-            return self._log_param_df        
+            return self._log_param_df
 
     def spectrograms(self, **kwargs):
         """ 
@@ -745,4 +723,3 @@ class CandidateTracks(Track, Sequence):
         """
 
         candidate_spectrograms(self, **kwargs)
-
